@@ -5,8 +5,8 @@ A secure and efficient e-commerce backend built with Node.js, Express, and Mongo
 ## 🚀 Features
 
 - **User Authentication**
-  - JWT-based authentication
-  - Role-based access control (Admin & Customer)
+- JWT-based authentication
+- Role-based access control (Admin & Customer)
   - Secure password handling
   - Cookie-based session management
 
@@ -203,10 +203,10 @@ POST /api/auth/register
 Create a new user account. Default role is 'customer'.
 ```json
 {
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "password123",
-  "role": "customer" // Optional, defaults to 'customer'
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "password123",
+    "role": "customer" // Optional, defaults to 'customer'
 }
 ```
 
@@ -217,8 +217,8 @@ POST /api/auth/login
 Authenticate and get access token.
 ```json
 {
-  "email": "john@example.com",
-  "password": "password123"
+    "email": "john@example.com",
+    "password": "password123"
 }
 ```
 
@@ -260,9 +260,9 @@ Request body:
 GET /api/products
 ```
 Get list of all active products with filtering options:
-- `category`: Filter by category
-- `search`: Search in name and description
-- `sort`: Sort by price (price_asc, price_desc)
+  - `category`: Filter by category
+  - `search`: Search in name and description
+  - `sort`: Sort by price (price_asc, price_desc)
 
 #### Get Single Product
 ```http
@@ -277,9 +277,9 @@ POST /api/products
 Create a new product.
 ```json
 {
-  "name": "Product Name",
-  "description": "Product Description",
-  "price": 99.99,
+    "name": "Product Name",
+    "description": "Product Description",
+    "price": 99.99,
   "category": "Electronics",
   "stock": 100
 }
@@ -306,18 +306,18 @@ POST /api/orders
 Create a new order.
 ```json
 {
-  "items": [
-    {
-      "product": "product_id",
-      "quantity": 2
-    }
-  ],
-  "shippingAddress": {
+    "items": [
+        {
+            "product": "product_id",
+            "quantity": 2
+        }
+    ],
+    "shippingAddress": {
     "address": "123 Main St",
-    "city": "City",
-    "state": "State",
-    "zipCode": "12345"
-  }
+        "city": "City",
+        "state": "State",
+        "zipCode": "12345"
+    }
 }
 ```
 
@@ -398,4 +398,4 @@ All endpoints return errors in this format:
 5. Create a Pull Request
 
 ## License
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. 

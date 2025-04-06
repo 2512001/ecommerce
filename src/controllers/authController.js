@@ -1,38 +1,36 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const bcrypt = require('bcryptjs');
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
+// Register new user account
 exports.register = async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
 
-        // Check if user exists
         let user = await User.findOne({ email });
         if (user) {
             return res.status(400).json({ message: 'User already exists' });
         }
 
-        // Create user
+        // Hash password before creating user
+        const hashedPassword = await bcrypt.hash(password, 12);
+
         user = await User.create({
             name,
-            email,
-            password,
+            email, 
+            password: hashedPassword, // Store hashed password
             role: role || 'customer'
         });
 
-        // Generate token
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
             expiresIn: process.env.JWT_EXPIRE
         });
 
-        // Set cookie
         res.cookie('auth_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+            maxAge: 24 * 60 * 60 * 1000 
         });
 
         res.status(201).json({
@@ -49,30 +47,26 @@ exports.register = async (req, res) => {
     }
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
+// Authenticate user and return token
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Check if user exists
         const user = await User.findOne({ email }).select('+password');
         if (!user) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        // Check if password matches
-        const isMatch = await user.comparePassword(password);
+        // Compare provided password with hashed password in database
+        const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        // Generate token with user role
         const token = jwt.sign(
             { 
                 id: user._id,
-                role: user.role  // Include role in token
+                role: user.role
             }, 
             process.env.JWT_SECRET,
             {
@@ -80,7 +74,6 @@ exports.login = async (req, res) => {
             }
         );
 
-        // Set cookie
         res.cookie('auth_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -102,9 +95,7 @@ exports.login = async (req, res) => {
     }
 };
 
-// @desc    Get current logged in user
-// @route   GET /api/auth/profile
-// @access  Private
+// Get current user profile
 exports.getProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -117,9 +108,7 @@ exports.getProfile = async (req, res) => {
     }
 };
 
-// @desc    Logout user
-// @route   POST /api/auth/logout
-// @access  Private
+// Clear auth token and log user out
 exports.logout = (req, res) => {
     res.cookie('auth_token', '', {
         httpOnly: true,

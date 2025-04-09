@@ -1,35 +1,27 @@
 const Product = require('../models/Product');
 
-// @desc    Get all products
-// @route   GET /api/products
-// @access  Public
 exports.getProducts = async (req, res) => {
     try {
-        const { category, search, sort } = req.query;
-        let query = { isActive: true };
+        const { category, search, sort, page = 1, limit = 10 } = req.query;
+        const query = { isActive: true };
 
-        // Filter by category
-        if (category) {
-            query.category = category;
-        }
+        if (category) query.category = category;
+        if (search) query.name = { $regex: search, $options: 'i' };
 
-        // Search functionality
-        if (search) {
-            query.$text = { $search: search };
-        }
+        const sortOptions = {
+            'price-asc': { price: 1 },
+            'price-desc': { price: -1 },
+            'newest': { createdAt: -1 },
+            'oldest': { createdAt: 1 }
+        };
 
-        // Sort functionality
-        let sortOption = { createdAt: -1 };
-        if (sort === 'price_asc') {
-            sortOption = { price: 1 };
-        } else if (sort === 'price_desc') {
-            sortOption = { price: -1 };
-        }
+        console.log(query); 
 
         const products = await Product.find(query)
-            .sort(sortOption)
-            .populate('createdBy', 'name email role')
-            .select('-__v');
+            .sort(sortOptions[sort] || { createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit));
+
 
         res.status(200).json({
             success: true,
@@ -37,18 +29,55 @@ exports.getProducts = async (req, res) => {
             data: products
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ 
+            success: false,
+            message: error.message 
+        });
     }
 };
 
-// @desc    Get single product
-// @route   GET /api/products/:id
-// @access  Public
 exports.getProduct = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id)
-            .populate('createdBy', 'name email role');
-            
+        const product = await Product.findById(req.params.id);
+        if (!product) {
+            return res.status(404).json({ 
+                success: false,
+                message: 'Product not found' 
+            });
+        }
+        res.status(200).json({
+            success: true,
+            data: product
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            success: false,
+            message: error.message 
+        });
+    }
+};
+
+exports.createProduct = async (req, res) => {
+    try {
+        const product = await Product.create({
+            ...req.body,
+            createdBy: req.user.id
+        });
+        res.status(201).json({
+            success: true,
+            data: product
+        });
+    } catch (error) {
+        res.status(400).json({ 
+            success: false,
+            message: error.message 
+        });
+    }
+};
+
+exports.updateProduct = async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id);
         if (!product) {
             return res.status(404).json({ 
                 success: false,
@@ -56,98 +85,49 @@ exports.getProduct = async (req, res) => {
             });
         }
 
-        res.status(200).json({
-            success: true,
-            data: product
-        });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// @desc    Create new product
-// @route   POST /api/products/admin/create
-// @access  Private/Admin
-exports.createProduct = async (req, res) => {
-    try {
-        // Add the admin's ID to the product data
-        const productData = {
-            ...req.body,
-            createdBy: req.user.id
-        };
-
-        const product = await Product.create(productData);
-        
-        // Populate the createdBy field with user details
-        await product.populate('createdBy', 'name email role');
-        
-        res.status(201).json({
-            success: true,
-            data: product
-        });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// @desc    Update product
-// @route   PUT /api/products/admin/update/:id
-// @access  Private/Admin
-exports.updateProduct = async (req, res) => {
-    try {
-
-        // First find the product and check if admin owns it
-        const product = await Product.findOne({
-            _id: req.params.id,
-            createdBy: req.user.id
-        });
-
-        if (!product) {
-            return res.status(404).json({
+        if (product.createdBy.toString() !== req.user.id) {
+            return res.status(403).json({ 
                 success: false,
-                message: 'Product not found or you do not have permission to update it'
+                message: 'Not authorized to update this product' 
             });
         }
 
-        // Update the product
         const updatedProduct = await Product.findByIdAndUpdate(
             req.params.id,
             req.body,
-            {
-                new: true,
-                runValidators: true
-            }
-        ).populate('createdBy', 'name email role');
+            { new: true, runValidators: true }
+        );
 
         res.status(200).json({
             success: true,
             data: updatedProduct
-        }); 
+        });
 
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(400).json({ 
+            success: false,
+            message: error.message 
+        });
     }
 };
 
-// @desc    Delete product
-// @route   DELETE /api/products/admin/delete/:id
-// @access  Private/Admin
 exports.deleteProduct = async (req, res) => {
     try {
-        // First find the product and check if admin owns it
-        const product = await Product.findOne({
-            _id: req.params.id,
-            createdBy: req.user.id
-        });
-
+        const product = await Product.findById(req.params.id);
         if (!product) {
-            return res.status(404).json({
+            return res.status(404).json({ 
                 success: false,
-                message: 'Product not found or you do not have permission to delete it'
+                message: 'Product not found' 
             });
         }
 
-        // Instead of deleting, we'll set isActive to false
+        if (product.createdBy.toString() !== req.user.id) {
+            return res.status(403).json({ 
+                success: false,
+                message: 'Not authorized to delete this product' 
+            });
+        }
+
         product.isActive = false;
         await product.save();
 
@@ -156,13 +136,12 @@ exports.deleteProduct = async (req, res) => {
             message: 'Product deactivated successfully'
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ 
+            success: false,
+            message: error.message 
+        });
     }
 };
-
-// @desc    Get all products created by admin
-// @route   GET /api/products/admin/products
-// @access  Private/Admin
 exports.getAdminProducts = async (req, res) => {
     try {
         const { category, search, sort } = req.query;
@@ -171,23 +150,12 @@ exports.getAdminProducts = async (req, res) => {
             createdBy: req.user.id 
         };
 
-        // Filter by category
-        if (category) {
-            query.category = category;
-        }
+        if (category) query.category = category;
+        if (search) query.$text = { $search: search };
 
-        // Search functionality
-        if (search) {
-            query.$text = { $search: search };
-        }
-
-        // Sort functionality
         let sortOption = { createdAt: -1 };
-        if (sort === 'price_asc') {
-            sortOption = { price: 1 };
-        } else if (sort === 'price_desc') {
-            sortOption = { price: -1 };
-        }
+        if (sort === 'price_asc') sortOption = { price: 1 };
+        else if (sort === 'price_desc') sortOption = { price: -1 };
 
         const products = await Product.find(query)
             .sort(sortOption)
@@ -204,9 +172,6 @@ exports.getAdminProducts = async (req, res) => {
     }
 };
 
-// @desc    Get single product created by admin
-// @route   GET /api/products/admin/products/:id
-// @access  Private/Admin
 exports.getAdminProduct = async (req, res) => {
     try {
         const product = await Product.findOne({
@@ -231,9 +196,6 @@ exports.getAdminProduct = async (req, res) => {
     }
 };
 
-// @desc    Update product created by admin
-// @route   PUT /api/products/admin/products/:id
-// @access  Private/Admin
 exports.updateAdminProduct = async (req, res) => {
     try {
         const product = await Product.findOne({
@@ -266,9 +228,6 @@ exports.updateAdminProduct = async (req, res) => {
     }
 };
 
-// @desc    Delete product created by admin
-// @route   DELETE /api/products/admin/products/:id
-// @access  Private/Admin
 exports.deleteAdminProduct = async (req, res) => {
     try {
         const product = await Product.findOne({
@@ -283,7 +242,6 @@ exports.deleteAdminProduct = async (req, res) => {
             });
         }
 
-        // Instead of deleting, we'll set isActive to false
         product.isActive = false;
         await product.save();
 

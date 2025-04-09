@@ -1,14 +1,12 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 
-// @desc    Create new order
-// @route   POST /api/orders
-// @access  Private
+// Create new order
 exports.createOrder = async (req, res) => {
     try {
         const { items, shippingAddress } = req.body;
 
-        // Validate products and calculate total
+        // Check stock and calculate total price
         let totalAmount = 0;
         const orderItems = [];
 
@@ -29,7 +27,6 @@ exports.createOrder = async (req, res) => {
                 price: product.price
             });
 
-            // Update product stock
             product.stock -= item.quantity;
             await product.save();
         }
@@ -50,14 +47,11 @@ exports.createOrder = async (req, res) => {
     }
 };
 
-// @desc    Get all orders
-// @route   GET /api/orders
-// @access  Private
+// Get orders
 exports.getOrders = async (req, res) => {
     try {
         let query = {};
         
-        // If user is not admin, only show their orders
         if (req.user.role !== 'admin') {
             query.user = req.user.id;
         }
@@ -76,9 +70,7 @@ exports.getOrders = async (req, res) => {
     }
 };
 
-// @desc    Get single order
-// @route   GET /api/orders/:id
-// @access  Private
+//get single order
 exports.getOrder = async (req, res) => {
     try {
         const order = await Order.findById(req.params.id)
@@ -89,7 +81,6 @@ exports.getOrder = async (req, res) => {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        // Check if user is authorized to view this order
         if (req.user.role !== 'admin' && order.user._id.toString() !== req.user.id) {
             return res.status(403).json({ message: 'Not authorized to access this order' });
         }
@@ -103,34 +94,30 @@ exports.getOrder = async (req, res) => {
     }
 };
 
-// @desc    Cancel order
-// @route   PATCH /api/orders/:id/cancel
-// @access  Private
+// Cancel an order
 exports.cancelOrder = async (req, res) => {
     try {
         const order = await Order.findById(req.params.id);
-
         if (!order) {
-            return res.status(404).json({ message: 'Order not found' });
+            return res.status(404).json({ 
+                success: false,
+                message: 'Order not found' 
+            });
         }
 
-        // Check if user is authorized to cancel this order
-        if (req.user.role === 'admin' && order.user.toString() !== req.user.id) {
-            return res.status(403).json({ message: 'Not authorized to cancel this order' });
+        // only customer
+        if (order.user.toString() !== req.user.id) {
+            return res.status(403).json({ 
+                success: false,
+                message: 'You can only cancel your own orders' 
+            });
         }
 
-        // Check if order can be cancelled
         if (order.status !== 'pending') {
-            return res.status(400).json({ message: 'Order cannot be cancelled' });
-        }
-
-        // Restore product stock
-        for (const item of order.items) {
-            const product = await Product.findById(item.product);
-            if (product) {
-                product.stock += item.quantity;
-                await product.save();
-            }
+            return res.status(400).json({ 
+                success: false,
+                message: 'Only pending orders can be cancelled' 
+            });
         }
 
         order.status = 'cancelled';
@@ -139,8 +126,11 @@ exports.cancelOrder = async (req, res) => {
         res.status(200).json({
             success: true,
             data: order
-        }); 
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ 
+            success: false,
+            message: error.message 
+        });
     }
 }; 

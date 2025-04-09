@@ -51,7 +51,6 @@ const orderSchema = new mongoose.Schema({
     }
 });
 
-// Create index for better query performance
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ status: 1 });
 

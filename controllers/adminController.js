@@ -2,21 +2,18 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
 
-// @desc    Get sales analytics
-// @route   GET /api/admin/analytics
-// @access  Private/Admin
+
+// Private/Admin
 exports.getAnalytics = async (req, res) => {
     try {
-        // Get total revenue
+        //total revenue
         const totalRevenue = await Order.aggregate([
             { $match: { status: { $ne: 'cancelled' } } },
             { $group: { _id: null, total: { $sum: '$totalAmount' } } }
         ]);
 
-        // Get total orders
         const totalOrders = await Order.countDocuments({ status: { $ne: 'cancelled' } });
 
-        // Get total customers
         const totalCustomers = await User.countDocuments({ role: 'customer' });
 
         // Get top selling products
@@ -65,13 +62,11 @@ exports.getAnalytics = async (req, res) => {
     }
 };
 
-// @desc    Get low stock products
-// @route   GET /api/admin/low-stock
-// @access  Private/Admin
+// Private/Admin
 exports.getLowStockProducts = async (req, res) => {
     try {
         const lowStockProducts = await Product.find({
-            stock: { $lt: 10 } // Products with less than 10 in stock
+            stock: { $lt: 10 } 
         }).select('name stock price');
 
         res.status(200).json({
@@ -84,8 +79,7 @@ exports.getLowStockProducts = async (req, res) => {
     }
 };
 
-// @desc    Get recent orders
-// @route   GET /api/admin/recent-orders
+
 // @access  Private/Admin
 exports.getRecentOrders = async (req, res) => {
     try {
@@ -104,8 +98,7 @@ exports.getRecentOrders = async (req, res) => {
     }
 };
 
-// @desc    Get top selling products
-// @route   GET /api/admin/analytics/top-products
+
 // @access  Private/Admin
 exports.getTopSellingProducts = async (req, res) => {
     try {

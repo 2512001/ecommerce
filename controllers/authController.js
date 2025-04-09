@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 
-// Register new user account
 exports.register = async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
@@ -12,13 +11,12 @@ exports.register = async (req, res) => {
             return res.status(400).json({ message: 'User already exists' });
         }
 
-        // Hash password before creating user
         const hashedPassword = await bcrypt.hash(password, 12);
 
         user = await User.create({
             name,
             email, 
-            password: hashedPassword, // Store hashed password
+            password: hashedPassword,
             role: role || 'customer'
         });
 
@@ -47,7 +45,6 @@ exports.register = async (req, res) => {
     }
 };
 
-// Authenticate user and return token
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -57,7 +54,6 @@ exports.login = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        // Compare provided password with hashed password in database
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid credentials' });
@@ -95,7 +91,6 @@ exports.login = async (req, res) => {
     }
 };
 
-// Get current user profile
 exports.getProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -108,7 +103,6 @@ exports.getProfile = async (req, res) => {
     }
 };
 
-// Clear auth token and log user out
 exports.logout = (req, res) => {
     res.cookie('auth_token', '', {
         httpOnly: true,

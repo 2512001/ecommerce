@@ -12,7 +12,6 @@ const { protect, isAdmin } = require('../middleware/auth');
 router.use(protect, isAdmin);
 
 router.get('/analytics', getAnalytics);
-router.get('/analytics/top-products', getTopSellingProducts);
 router.get('/low-stock', getLowStockProducts);
 router.get('/recent-orders', getRecentOrders);
 

@@ -2,7 +2,6 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
 
-
 // Private/Admin
 exports.getAnalytics = async (req, res) => {
     try {
@@ -86,62 +85,3 @@ exports.getRecentOrders = async (req, res) => {
     }
 };
 
-
-// @access  Private/Admin
-exports.getTopSellingProducts = async (req, res) => {
-    try {
-        const limit = parseInt(req.query.limit) || 10;
-
-        const topProducts = await Order.aggregate([
-            // Remove or update this match filter if you have no paymentStatus field
-            { $match: { paymentStatus: 'completed' } },
-
-            // Break each item in items array into separate documents
-            { $unwind: '$items' },
-
-            // Group by product ID and calculate total quantity sold
-            {
-                $group: {
-                    _id: '$items.product',
-                    totalSold: { $sum: '$items.quantity' }
-                }
-            },
-
-            // Sort by quantity sold
-            { $sort: { totalSold: -1 } },
-
-            // Limit number of top products
-            { $limit: limit },
-
-            // Join with products collection to get product details
-            {
-                $lookup: {
-                    from: 'products',
-                    localField: '_id',
-                    foreignField: '_id',
-                    as: 'product'
-                }
-            },
-
-            // Flatten product array (from lookup)
-            { $unwind: '$product' },
-
-            // Final shape of the output
-            {
-                $project: {
-                    _id: 0,
-                    productId: '$_id',
-                    name: '$product.name',
-                    totalSold: 1
-                }
-            }
-        ]);
-
-        res.status(200).json({
-            success: true,
-            topProducts
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
-};

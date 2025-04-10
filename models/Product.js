@@ -42,24 +42,14 @@ const productSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
     }
-});
+},{timestamps : true});
 
-// Update the updatedAt field before saving
-productSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
-    next();
-});
+// productSchema.pre('save', function(next) {
+//     this.updatedAt = Date.now();
+//     next();
+// });
 
 // Create index for better search performance
 productSchema.index({ name: 'text', description: 'text', category: 'text' });
-
 module.exports = mongoose.model('Product', productSchema); 

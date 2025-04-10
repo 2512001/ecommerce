@@ -1,13 +1,6 @@
 require('dotenv').config();
-const path = require('path');
-const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
 
-
-
-// // Load environment variables first
-// const envPath = path.resolve(__dirname, '../.env');
-// dotenv.config({ path: envPath });
 
 const express = require('express');
 const cors = require('cors');
@@ -26,10 +19,12 @@ connectDB();
 
 app.use(express.json());
 app.use(cookieParser());
+
 app.use(cors({
     origin: true, 
     credentials: true
 }));
+
 app.use(morgan('dev'));
 
 // Routes

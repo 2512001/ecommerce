@@ -15,7 +15,7 @@ exports.getProducts = async (req, res) => {
             'oldest': { createdAt: 1 }
         };
 
-        console.log(query); 
+        console.log(query);
 
         const products = await Product.find(query)
             .sort(sortOptions[sort] || { createdAt: -1 })
@@ -29,9 +29,9 @@ exports.getProducts = async (req, res) => {
             data: products
         });
     } catch (error) {
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            message: error.message 
+            message: error.message
         });
     }
 };
@@ -40,9 +40,9 @@ exports.getProduct = async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
         if (!product) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'Product not found' 
+                message: 'Product not found'
             });
         }
         res.status(200).json({
@@ -50,9 +50,9 @@ exports.getProduct = async (req, res) => {
             data: product
         });
     } catch (error) {
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            message: error.message 
+            message: error.message
         });
     }
 };
@@ -68,9 +68,9 @@ exports.createProduct = async (req, res) => {
             data: product
         });
     } catch (error) {
-        res.status(400).json({ 
+        res.status(400).json({
             success: false,
-            message: error.message 
+            message: error.message
         });
     }
 };
@@ -79,16 +79,16 @@ exports.updateProduct = async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
         if (!product) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'Product not found' 
+                message: 'Product not found'
             });
         }
 
         if (product.createdBy.toString() !== req.user.id) {
-            return res.status(403).json({ 
+            return res.status(403).json({
                 success: false,
-                message: 'Not authorized to update this product' 
+                message: 'Not authorized to update this product'
             });
         }
 
@@ -104,9 +104,9 @@ exports.updateProduct = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(400).json({ 
+        res.status(400).json({
             success: false,
-            message: error.message 
+            message: error.message
         });
     }
 };
@@ -115,16 +115,16 @@ exports.deleteProduct = async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
         if (!product) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'Product not found' 
+                message: 'Product not found'
             });
         }
 
         if (product.createdBy.toString() !== req.user.id) {
-            return res.status(403).json({ 
+            return res.status(403).json({
                 success: false,
-                message: 'Not authorized to delete this product' 
+                message: 'Not authorized to delete this product'
             });
         }
 
@@ -136,29 +136,35 @@ exports.deleteProduct = async (req, res) => {
             message: 'Product deactivated successfully'
         });
     } catch (error) {
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
-            message: error.message 
+            message: error.message
         });
     }
 };
+
 exports.getAdminProducts = async (req, res) => {
     try {
         const { category, search, sort } = req.query;
-        let query = { 
+        let query = {
             isActive: true,
-            createdBy: req.user.id 
+            createdBy: req.user.id
         };
 
         if (category) query.category = category;
         if (search) query.$text = { $search: search };
 
-        let sortOption = { createdAt: -1 };
-        if (sort === 'price_asc') sortOption = { price: 1 };
-        else if (sort === 'price_desc') sortOption = { price: -1 };
+        const sortOptions = {
+            'price-asc': { price: 1 },
+            'price-desc': { price: -1 },
+            'newest': { createdAt: -1 },
+            'oldest': { createdAt: 1 }
+        };
+
+
 
         const products = await Product.find(query)
-            .sort(sortOption)
+            .sort(sortOptions[sort] || { createdAt: -1 })
             .populate('createdBy', 'name email role')
             .select('-__v');
 
@@ -179,11 +185,11 @@ exports.getAdminProduct = async (req, res) => {
             createdBy: req.user.id,
             isActive: true
         }).populate('createdBy', 'name email role');
-            
+
         if (!product) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'Product not found' 
+                message: 'Product not found'
             });
         }
 
